@@ -23,6 +23,7 @@
     "multer": "^0.1.8",
     "mysql": "*",
     "path": "^0.11.14",
+    "request": "^2.65.0",
     "serve-favicon": "^2.2.0",
     "urlencode": "^1.0.0"
   }

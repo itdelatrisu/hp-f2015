@@ -3,20 +3,10 @@ var pool = require('../config/database').pool;
 var api = require('../config/api');
 var key = api.faceAPIkey;
 var fs = require('fs');
+var request = require('request');
 var IMG_DIR = 'img/';
 
 module.exports = function(app) {
-	app.get('/test', function(req, res) {
-		var queryString = 'SELECT * FROM `users`';
-		pool.query(queryString, function(err, results) {
-			if (err) {
-				sendSQLError(res, err);
-				return;
-			}
-			res.json(results);
-		});
-	});
-
 	// Checks if a username is in use.
 	// Parameters: username (string)
 	// Returns: true if in use, false if available
@@ -48,6 +38,8 @@ module.exports = function(app) {
 		// TODO: validate image and username
 		var username = postData.username;
 		var image = postData.image;
+		var imageDataBase64 = image.replace(/^data:image\/png;base64,/, '');
+		var imageBuf = new Buffer(imageDataBase64, 'base64');
 
 		// check if user exists
 		var queryString = 'SELECT 1 FROM `users` WHERE `username` = ?';
@@ -56,39 +48,61 @@ module.exports = function(app) {
 				sendSQLError(res, err);
 				return;
 			}
-			if (results.length) {
-				sendResponse(res, ERROR, 'That\'s already been taken, sorry!');
-				return;
-			}
-
-			// send to API and get face ID
-			// TODO
-			var faceId = 'TODO';
+			// if (results.length) {
+				// sendResponse(res, ERROR, 'That\'s already been taken, sorry!');
+				// return;
+			// }
 
 			// insert into database
-			queryString = 'INSERT INTO `users` (`username`,`faceId`,`expiration`) VALUES(?, ?, NOW() + INTERVAL 1 DAY)';
-			pool.query(queryString, [username, faceId], function(err, results) {
-				if (err) {
-					sendSQLError(res, err);
-					return;
-				}
-				if (results.length) {
-					sendResponse(res, ERROR, 'That\'s already been taken, sorry!');
-					return;
-				}
-				var userId = results.insertId;
-
-				// save photo to disk
-				var base64Data = image.replace(/^data:image\/png;base64,/, '');
-				fs.writeFile(IMG_DIR + userId + '.png', base64Data, 'base64', function(err) {
+			function insert(faceId) {
+				var queryString = 'INSERT INTO `users` (`username`,`faceId`,`expiration`) VALUES(?, ?, NOW() + INTERVAL 1 DAY)';
+				pool.query(queryString, [username, faceId], function(err, results) {
 					if (err) {
-						console.log(err);
-						sendResponse(res, ERROR, 'The image could not be saved.');
+						sendSQLError(res, err);
+						return;
 					}
-				});
+					if (results.length) {
+						sendResponse(res, ERROR, 'That\'s already been taken, sorry!');
+						return;
+					}
+					var userId = results.insertId;
 
-				console.log('Registered new user ' + userId + ' (' + username +')');
-				sendResponse(res, SUCCESS, '');
+					// save photo to disk
+					fs.writeFile(IMG_DIR + userId + '.png', imageDataBase64, 'base64', function(err) {
+						if (err) {
+							console.log(err);
+							sendResponse(res, ERROR, 'The image could not be saved.');
+						}
+					});
+
+					console.log('Registered new user ' + userId + ' (' + username +')');
+					sendResponse(res, SUCCESS, '');
+				});
+			}
+
+			// insert('TODO');
+
+			// call API and get face ID
+			var detectOptions = JSON.parse(JSON.stringify(api.detectOptions));
+			detectOptions.body = imageBuf;
+			request(detectOptions, function(error, response, body) {
+				if (error) {
+					sendResponse(res, ERROR, 'API call failed.');
+					return;
+				}
+				if (response.statusCode != 200) {
+					sendResponse(res, ERROR, 'API call returned status code ' + response.statusCode + ': ' + body);
+					return;
+				}
+				console.log(body);
+				var arr = JSON.parse(body);
+				if (!Array.isArray(arr) || arr.length != 1) {
+					sendResponse(res, ERROR, 'API call returned unexpected value: ' + body);
+					return;
+				}
+				var faceId = arr[0].faceId;
+				console.log('faceId = ' + faceId);
+				insert(faceId);
 			});
 		});
 	});
