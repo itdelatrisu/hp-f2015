@@ -1,5 +1,7 @@
 var app = require('../app');
 var pool = require('../config/database').pool;
+var api = require('../config/api');
+var key = api.faceAPIkey;
 
 module.exports = function(app) {
 	app.get('/test', function(req, res) {
@@ -11,6 +13,24 @@ module.exports = function(app) {
 			}
 			res.json(results);
 		});
+	});
+
+	// Register a new account.
+	// Parameters: username (string), files (image file)
+	app.post('/register', function(req, res) {
+		var postData = req.body;
+		// TODO
+		// check if user exists
+		// insert into database
+		// save photo to disk
+		// call detect, get face ID, insert into database with expiration
+	});
+
+	// Authenticates a user.
+	// Parameters: username (string), files (image file)
+	app.post('/authenticate', function(req, res) {
+		var postData = req.body;
+		// TODO
 	});
 
 	// Return a 404 error.
