@@ -85,11 +85,11 @@ body {
   text-transform: uppercase;
   border-color: #59B2E6;
 }
-.btn-login:hover,
+.btn-login:hover:enabled,
 .btn-login:focus {
   color: #fff;
-  background-color: #53A3CD;
   border-color: #53A3CD;
+  background-color: #53A3CD;
 }
 .btn-register {
   background-color: #1CB94E;
@@ -102,7 +102,7 @@ body {
   text-transform: uppercase;
   border-color: #1CB94A;
 }
-.btn-register:hover,
+.btn-register:hover:enabled,
 .btn-register:focus {
   color: #fff;
   background-color: #1CA347;
