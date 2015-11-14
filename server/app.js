@@ -25,8 +25,8 @@ app.disable('x-powered-by');
 app.use(compression());
 app.use(logger('dev'));
 app.use(cookieParser());
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: true }));
+app.use(bodyParser.json({limit: '50mb'}));
+app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
 
 // enable CORS
 app.use(function(req, res, next) {
