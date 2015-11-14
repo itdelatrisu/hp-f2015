@@ -63,7 +63,20 @@
 
 		// submit form
 		$scope.doLogin = function() {
-			// TODO
+			var postData = {
+				'username': $scope.login_username,
+				'image': imageData
+			};
+			console.log(postData);
+			$http.post(AUTH_URL, postData).success(function(data, status, headers, config) {
+				console.log(data);
+				if (data.status === 0) {
+					console.log('Success!');
+				} else {
+					console.log('Failure:');
+					console.log(data.message);
+				}
+			});
 		};
 		$scope.doRegister = function() {
 			var postData = {
@@ -75,7 +88,8 @@
 				if (data.status === 0) {
 					console.log('Success!');
 				} else {
-					console.log('Failure: ' + data.message);
+					console.log('Failure:');
+					console.log(data.message);
 				}
 			});
 		};

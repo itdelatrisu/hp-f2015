@@ -1,9 +1,7 @@
 var app = require('../app');
 var pool = require('../config/database').pool;
 var api = require('../config/api');
-var key = api.faceAPIkey;
 var fs = require('fs');
-var request = require('request');
 var IMG_DIR = 'img/';
 
 module.exports = function(app) {
@@ -27,7 +25,8 @@ module.exports = function(app) {
 	});
 
 	// Register a new account.
-	// Parameters: username (string), files (base64 png image)
+	// Parameters: username (string), image (base64 png image)
+	// Returns: {'status': 0|1, 'message': string}
 	app.post('/register', function(req, res) {
 		var postData = req.body;
 		if (!postData.hasOwnProperty('username') || !postData.hasOwnProperty('image')) {
@@ -48,10 +47,10 @@ module.exports = function(app) {
 				sendSQLError(res, err);
 				return;
 			}
-			// if (results.length) {
-				// sendResponse(res, ERROR, 'That\'s already been taken, sorry!');
-				// return;
-			// }
+			if (results.length) {
+				sendResponse(res, ERROR, 'That\'s already been taken, sorry!');
+				return;
+			}
 
 			// insert into database
 			function insert(faceId) {
@@ -80,12 +79,8 @@ module.exports = function(app) {
 				});
 			}
 
-			// insert('TODO');
-
 			// call API and get face ID
-			var detectOptions = JSON.parse(JSON.stringify(api.detectOptions));
-			detectOptions.body = imageBuf;
-			request(detectOptions, function(error, response, body) {
+			api.faceDetect(imageBuf, function(error, response, body) {
 				if (error) {
 					sendResponse(res, ERROR, 'API call failed.');
 					return;
@@ -101,17 +96,84 @@ module.exports = function(app) {
 					return;
 				}
 				var faceId = arr[0].faceId;
-				console.log('faceId = ' + faceId);
 				insert(faceId);
 			});
 		});
 	});
 
+	// TODO generate random headPose (roll/yaw/pitch) parameters
+
+
 	// Authenticates a user.
-	// Parameters: username (string), files (image file)
+	// Parameters: username (string), files (base64 png image)
+	// Returns:
+	//   {'status': 0, 'isIdentical': boolean, 'confidence': number} on success
+	//   {'status': 1, 'message': string} on error
 	app.post('/authenticate', function(req, res) {
 		var postData = req.body;
-		// TODO
+		if (!postData.hasOwnProperty('username') || !postData.hasOwnProperty('image')) {
+			sendResponse(res, ERROR, 'Missing required field.');
+			return;
+		}
+
+		// TODO: validate image and username
+		var username = postData.username;
+		var image = postData.image;
+		var imageDataBase64 = image.replace(/^data:image\/png;base64,/, '');
+		var imageBuf = new Buffer(imageDataBase64, 'base64');
+
+		// check if user exists
+		var queryString = 'SELECT `faceId`,(`expiration` >= NOW()) AS expired FROM `users` WHERE `username` = ?';
+		pool.query(queryString, [username], function(err, results) {
+			if (err) {
+				sendSQLError(res, err);
+				return;
+			}
+			if (!results.length) {
+				sendResponse(res, ERROR, 'That user doesn\'t exist!');
+				return;
+			}
+
+			// generate a new face ID
+			if (results[0].expired) {
+				// TODO
+			}
+
+			var faceId1 = results[0].faceId;
+
+			// call API and get face ID
+			api.faceDetect(imageBuf, function(error, response, body) {
+				if (error) {
+					sendResponse(res, ERROR, 'API call failed.');
+					return;
+				}
+				if (response.statusCode != 200) {
+					sendResponse(res, ERROR, 'API call returned status code ' + response.statusCode + ': ' + body);
+					return;
+				}
+				console.log(body);
+				var arr = JSON.parse(body);
+				if (!Array.isArray(arr) || arr.length != 1) {
+					sendResponse(res, ERROR, 'API call returned unexpected value: ' + body);
+					return;
+				}
+				var faceId2 = arr[0].faceId;
+
+				// call API and verify IDs
+				api.verify(faceId1, faceId2, function(error, response, body) {
+					if (error) {
+						sendResponse(res, ERROR, 'API call failed.');
+						return;
+					}
+					if (response.statusCode != 200) {
+						sendResponse(res, ERROR, 'API call returned status code ' + response.statusCode + ': ' + JSON.stringify(body));
+						return;
+					}
+					console.log(body);
+					res.json({status: SUCCESS, isIdentical: body.isIdentical, confidence: body.confidence});
+				});
+			});
+		});
 	});
 
 	// Return a 404 error.
