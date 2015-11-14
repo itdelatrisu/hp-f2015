@@ -90,8 +90,12 @@
 									</div>
 									<div ng-if="videoOn">
 										<div class="form-group">
-											<webcam channel="channel" on-stream="onStream(stream)" on-streaming="onSuccess()" on-error="onError(err)"></webcam>
-											<canvas id="snapshot"></canvas>
+											<div style="width:320px;height:240px;margin:0 auto">
+												<span style="position:absolute;margin:0;">
+													<webcam channel="channel" on-stream="onStream(stream)" on-streaming="onSuccess()" on-error="onError(err)"></webcam>
+												</span>
+												<canvas id="snapshot" style="position:absolute;margin:0;"></canvas>
+											</div>
 											<br>
 											<div class="alert alert-error" ng-show="webcamError">
 												<span>Webcam could not be started. Did you give access to it?</span>

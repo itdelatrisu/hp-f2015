@@ -107,15 +107,20 @@
 			if (_video) {
 				var patCanvas = document.querySelector('#snapshot');
 				if (!patCanvas) return;
-
-				patCanvas.width = _video.width;
-				patCanvas.height = _video.height;
 				var ctxPat = patCanvas.getContext('2d');
-				var idata = getVideoData($scope.patOpts.x, $scope.patOpts.y, $scope.patOpts.w, $scope.patOpts.h);
-				ctxPat.putImageData(idata, 0, 0);
-				imageData = patCanvas.toDataURL();
-				patData = idata;
-				$scope.snapshotTaken = true;
+
+				if ($scope.snapshotTaken) {
+					ctxPat.clearRect(0, 0, _video.width, _video.height);
+					$scope.snapshotTaken = false;
+				} else {
+					patCanvas.width = _video.width;
+					patCanvas.height = _video.height;
+					var idata = getVideoData($scope.patOpts.x, $scope.patOpts.y, $scope.patOpts.w, $scope.patOpts.h);
+					ctxPat.putImageData(idata, 0, 0);
+					imageData = patCanvas.toDataURL();
+					patData = idata;
+					$scope.snapshotTaken = true;
+				}
 			}
 		};
 		var getVideoData = function getVideoData(x, y, w, h) {
