@@ -10,16 +10,22 @@
 
 	var TAB_LOGIN = 'LOGIN',
 	    TAB_REGISTER = 'REGISTER';
-		
-	
 
-	app.controller('MainCtrl', ['$scope', '$http', function($scope, $http) {
+	app.controller('WelcomeCtrl', ['$scope', '$http', '$rootScope', function($scope, $http, $rootScope) {
+		$rootScope.noLogin = false;
+		$scope.$on('loginEvent', function(event, login_username) {
+			$scope.login_username = login_username;
+		});
+	}]);
+
+	app.controller('MainCtrl', ['$scope', '$http', '$rootScope', function($scope, $http, $rootScope) {
 
 		$scope.activeTab = TAB_LOGIN;
 		$scope.buttonDisabled = true;
 		$scope.videoOn = false;
 		$scope.videoLoaded = false;
 		$scope.snapshotTaken = false;
+		$rootScope.noLogin = false;
 
 		var _video = null, patData = null, imageData = null;
 		$scope.patOpts = {x: 0, y: 0, w: 25, h: 25};
@@ -91,9 +97,12 @@
 				console.log(data);
 				if (data.status === 0) {
 					console.log('Success!');
+					$rootScope.noLogin = true;
+					$scope.$emit('loginEvent', $scope.login_username);
 				} else {
 					console.log('Failure:');
 					console.log(data.message);
+					$scope.submitDisabled = false;
 				}
 			});
 		};
@@ -108,18 +117,26 @@
 				if (data.status === 0) {
 					console.log('Success!');
 					$scope.registered = true;
+					$scope.registerFailed = false;
 					$scope.activeTab = TAB_LOGIN;
 					$scope.registered_username = $scope.register_username;
 					tabReset();
 				} else {
 					console.log('Failure:');
 					console.log(data.message);
+					$scope.registered = false;
+					$scope.registerFailed = true;
+					$scope.submitDisabled = false;
 				}
 			});
 		};
 		
 		$scope.closeRegisteredAlert = function() {
 			$scope.registered = false;
+		}
+		
+		$scope.closeRegisterFailedAlert = function() {
+			$scope.registerFailed = false;
 		}
 		
 
@@ -156,6 +173,7 @@
 				if ($scope.snapshotTaken) {
 					ctxPat.clearRect(0, 0, _video.width, _video.height);
 					$scope.snapshotTaken = false;
+					$scope.registerFailed = false;
 				} else {
 					patCanvas.width = _video.width;
 					patCanvas.height = _video.height;
