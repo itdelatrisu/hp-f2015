@@ -1,15 +1,9 @@
-# Face Authenticator
-(rename me!)
+# MOE Auth
+MOE: Orientation and Emotion Authentication
 
-## Prerequesites
-* [MySQL](https://www.mysql.com/)
-* [Node.js](https://nodejs.org/)
-* [Python](https://www.python.org/) (any version)
+We leverage [Project Oxford's](https://www.projectoxford.ai/) emotion and face recognition APIs to create a picture-resistent non-video facial recognition authentication system.
 
-## Setup
 ### Server
-* Run the MySQL database/table creation script.
-  
   ```
   $ mysql -u root -p
   (enter your root password)
