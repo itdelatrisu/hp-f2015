@@ -54,7 +54,7 @@ module.exports = function(app) {
 
 			// insert into database
 			function insert(faceId) {
-				var queryString = 'INSERT INTO `users` (`username`,`faceId`,`expiration`) VALUES(?, ?, NOW() + INTERVAL 1 DAY)';
+				var queryString = 'INSERT INTO `users` (`username`,`faceId`,`faceIdExpiration`) VALUES(?, ?, NOW() + INTERVAL 1 DAY)';
 				pool.query(queryString, [username, faceId], function(err, results) {
 					if (err) {
 						sendSQLError(res, err);
@@ -101,11 +101,65 @@ module.exports = function(app) {
 		});
 	});
 
-	// TODO generate random headPose (roll/yaw/pitch) parameters
+	// Generates random head pose parameters (roll, yaw, pitch) for authentication.
+	// These are temporary and expire immediately upon successful login.
+	// Parameters: username (string)
+	// Returns:
+	//   {'status': 0, 'pitch': number, 'roll': number, 'yaw': number} on success
+	//   {'status': 1, 'message': string} on error
+	app.get('/authParams', function(req, res) {
+		if (!req.query.hasOwnProperty('username')) {
+			sendResponse(res, ERROR, 'Missing required field.');
+			return;
+		}
+		var username = req.query.username;
+		var queryString = 'SELECT `pitch`,`roll`,`yaw`,`authExpiration`,(`authExpiration` <= NOW()) AS expired FROM `users` WHERE `username` = ?';
+		pool.query(queryString, [username], function(err, results) {
+			if (err) {
+				sendSQLError(res, err);
+				return;
+			}
+			if (!results.length) {
+				sendResponse(res, ERROR, 'That user doesn\'t exist!');
+				return;
+			}
 
+			// use previous parameters if non-expired
+			if (results[0].authExpiration && !results[0].expired) {
+				res.json({
+					status: SUCCESS,
+					pitch: results[0].pitch,
+					roll: results[0].roll,
+					yaw: results[0].yaw
+				});
+				return;
+			}
+
+			// roll new parameters
+			var pitch = 0.0;  // not implemented by microsoft :)
+			var roll = -30.0 + Math.random() * 60.0;
+			var yaw = -30.0 + Math.random() * 60.0;
+			pitch = parseFloat(pitch.toFixed(1));
+			roll = parseFloat(roll.toFixed(1));
+			yaw = parseFloat(yaw.toFixed(1));
+			queryString = 'UPDATE `users` SET `pitch` = ?,`roll` = ?,`yaw` = ?,`authExpiration` = NOW() + INTERVAL 1 MINUTE WHERE `username` = ?';
+			pool.query(queryString, [pitch, roll, yaw, username], function(err, results) {
+				if (err) {
+					sendSQLError(res, err);
+					return;
+				}
+				res.json({
+					status: SUCCESS,
+					pitch: pitch,
+					roll: roll,
+					yaw: yaw
+				});
+			});
+		});
+	});
 
 	// Authenticates a user.
-	// Parameters: username (string), files (base64 png image)
+	// Parameters: username (string), image (base64 png image)
 	// Returns:
 	//   {'status': 0, 'isIdentical': boolean, 'confidence': number} on success
 	//   {'status': 1, 'message': string} on error
@@ -123,7 +177,7 @@ module.exports = function(app) {
 		var imageBuf = new Buffer(imageDataBase64, 'base64');
 
 		// check if user exists
-		var queryString = 'SELECT `faceId`,(`expiration` >= NOW()) AS expired FROM `users` WHERE `username` = ?';
+		var queryString = 'SELECT `faceId`,(`faceIdExpiration` <= NOW()) AS expired FROM `users` WHERE `username` = ?';
 		pool.query(queryString, [username], function(err, results) {
 			if (err) {
 				sendSQLError(res, err);
