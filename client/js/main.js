@@ -10,11 +10,8 @@
 
 	var TAB_LOGIN = 'LOGIN',
 	    TAB_REGISTER = 'REGISTER';
-		
-	
 
 	app.controller('MainCtrl', ['$scope', '$http', function($scope, $http) {
-
 		$scope.activeTab = TAB_LOGIN;
 		$scope.buttonDisabled = true;
 		$scope.videoOn = false;
@@ -117,11 +114,10 @@
 				}
 			});
 		};
-		
+
 		$scope.closeRegisteredAlert = function() {
 			$scope.registered = false;
-		}
-		
+		};
 
 		// webcam stuff
 		$scope.webcamError = false;

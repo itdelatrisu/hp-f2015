@@ -57,7 +57,8 @@
 								<div id="login-form" ng-if="activeTab === 'LOGIN'">
 									<div class="form-group">
 										<input type="text" name="username" id="username" tabindex="1" class="form-control" placeholder="Username" value=""
-										       ng-model="$parent.login_username" ng-change="checkUser($parent.login_username, activeTab)" ng-disabled="videoOn">
+										       ng-model="$parent.login_username" ng-change="checkUser($parent.login_username, activeTab)" ng-disabled="videoOn"
+										       ng-keypress="$event.which === 13 && !videoOn && !buttonDisabled && openVideo(true)">
 									</div>
 									<div class="form-group" ng-if="!videoOn">
 										<div class="row">
@@ -101,7 +102,8 @@
 								<div id="register-form" ng-if="activeTab === 'REGISTER'">
 									<div class="form-group">
 										<input type="text" name="username" id="username" tabindex="1" class="form-control" placeholder="Select a username..." value=""
-										       ng-model="$parent.register_username" ng-change="checkUser($parent.register_username, activeTab)" ng-disabled="videoOn">
+										       ng-model="$parent.register_username" ng-change="checkUser($parent.register_username, activeTab)" ng-disabled="videoOn"
+										       ng-keypress="$event.which === 13 && !videoOn && !buttonDisabled && openVideo(false)">
 									</div>
 									<div class="form-group" ng-if="!videoOn">
 										<div class="row">
