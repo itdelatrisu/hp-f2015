@@ -246,6 +246,11 @@ module.exports = function(app) {
 							return;
 						}
 						console.log(body);
+						if (body.isIdentical) {
+							// successful authentication: expire the auth parameters
+							var queryString = 'UPDATE `users` SET `authExpiration` = NULL WHERE `username` = ?';
+							pool.query(queryString, [username], function(err, results) {});
+						}
 						res.json({status: SUCCESS, isIdentical: body.isIdentical, confidence: body.confidence});
 					});
 				});

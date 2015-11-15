@@ -18,8 +18,7 @@
 		});
 	}]);
 
-	app.controller('MainCtrl', ['$scope', '$http', '$rootScope', function($scope, $http, $rootScope) {
-
+	app.controller('MainCtrl', ['$scope', '$http', '$rootScope', '$modal', function($scope, $http, $rootScope, $modal) {
 		$scope.activeTab = TAB_LOGIN;
 		$scope.buttonDisabled = true;
 		$scope.videoOn = false;
@@ -34,6 +33,24 @@
 			height: 240,
 			video: null
 		};
+
+		var modal = null;
+		function openModal() {
+			if (modal)
+				return;
+			modal = $modal.open({
+				animation: false,
+				templateUrl: 'spinner.html',
+				backdrop: 'static',
+				keyboard: false
+			});
+		};
+		function closeModal() {
+			if (modal) {
+				modal.close();
+				modal = null;
+			}
+		}
 
 		// switch tabs
 		function tabReset() {
@@ -73,7 +90,6 @@
 			$scope.submitDisabled = false;
 			$scope.videoOn = true;
 			$scope.registered = false;
-			
 			if (isLogin) {
 				var username = $scope.login_username;
 				var url = AUTH_PARAMS_URL + '?username=' + username;
@@ -93,7 +109,9 @@
 				'image': imageData
 			};
 			console.log(postData);
+			openModal();
 			$http.post(AUTH_URL, postData).success(function(data, status, headers, config) {
+				closeModal();
 				console.log(data);
 				if (data.status === 0) {
 					console.log('Success!');
@@ -113,7 +131,9 @@
 				'image': imageData
 			};
 			console.log(postData);
+			openModal();
 			$http.post(REGISTER_URL, postData).success(function(data, status, headers, config) {
+				closeModal();
 				if (data.status === 0) {
 					console.log('Success!');
 					$scope.registered = true;
@@ -130,15 +150,11 @@
 				}
 			});
 		};
-		
+
 		$scope.closeRegisteredAlert = function() {
 			$scope.registered = false;
-		}
-		
-		$scope.closeRegisterFailedAlert = function() {
 			$scope.registerFailed = false;
-		}
-		
+		};
 
 		// webcam stuff
 		$scope.webcamError = false;

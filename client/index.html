@@ -36,7 +36,7 @@
 	<script src="http://threejs.org/examples/js/libs/stats.min.js"></script>
 </head>
 <body ng-controller="MainCtrl">
-	<div class="container" ng-controller="WelcomeCtrl">
+	<div class="container" ng-controller="WelcomeCtrl" ng-cloak>
 		<div class="row" ng-if="$root.noLogin">
 			<div class="col-md-6 col-md-offset-3">
 				<div class="panel panel-login" style="padding:20px">
@@ -62,7 +62,7 @@
 		</div>
 	</div>
 
-	<div class="container">
+	<div class="container" ng-cloak>
 		<div class="row" ng-hide="$root.noLogin">
 			<div class="col-md-6 col-md-offset-3">
 				<div class="panel panel-login">
@@ -93,7 +93,8 @@
 								<div id="login-form" ng-if="activeTab === 'LOGIN'">
 									<div class="form-group">
 										<input type="text" name="username" id="username" tabindex="1" class="form-control" placeholder="Username" value=""
-										       ng-model="$parent.login_username" ng-change="checkUser($parent.login_username, activeTab)" ng-disabled="videoOn">
+										       ng-model="$parent.login_username" ng-change="checkUser($parent.login_username, activeTab)" ng-disabled="videoOn"
+										       ng-keypress="$event.which === 13 && !videoOn && !buttonDisabled && openVideo(true)">
 									</div>
 									<div class="form-group" ng-if="!videoOn">
 										<div class="row">
@@ -137,7 +138,8 @@
 								<div id="register-form" ng-if="activeTab === 'REGISTER'">
 									<div class="form-group">
 										<input type="text" name="username" id="username" tabindex="1" class="form-control" placeholder="Select a username..." value=""
-										       ng-model="$parent.register_username" ng-change="checkUser($parent.register_username, activeTab)" ng-disabled="videoOn">
+										       ng-model="$parent.register_username" ng-change="checkUser($parent.register_username, activeTab)" ng-disabled="videoOn"
+										       ng-keypress="$event.which === 13 && !videoOn && !buttonDisabled && openVideo(false)">
 									</div>
 									<div class="form-group" ng-if="!videoOn">
 										<div class="row">
@@ -184,5 +186,10 @@
 			</div>
 		</div>
 	</div>
+
+	<script type="text/ng-template" id="spinner.html">
+		<img src="img/loader.svg"
+		     style="margin: auto; position: absolute; top: 0; bottom: 0; left: 0; right: 0; user-drag: none; -moz-user-select: none; -webkit-user-drag: none;" />
+	</script>
 </body>
 </html>
