@@ -104,6 +104,7 @@
 			);
 		};
 		$scope.onSuccess = function() {
+			makeScaryFace();
 			// The video element contains the captured camera data
 			_video = $scope.channel.video;
 			$scope.videoLoaded = true;
@@ -143,7 +144,202 @@
 			hiddenCanvas.height = _video.height;
 			var ctx = hiddenCanvas.getContext('2d');
 			ctx.drawImage(_video, 0, 0, _video.width, _video.height);
+			ctx.scale(-1, 1);
 			return ctx.getImageData(x, y, w, h);
+		};
+		
+		var makeScaryFace = function makeScaryFace() {
+			if (!Detector.webgl) Detector.addGetWebGLMessage();
+
+			var container, loader;
+			var camera, scene, renderer;
+			var mesh;
+			var composer, composerUV1, composerUV2, composerUV3, composerBeckmann;
+			var material, composerScene, renderScene;
+			var directionalLight, pointLight, ambientLight;
+
+			var windowHalfX = 160;
+			var windowHalfY = 120;
+
+			var firstPass = true;
+
+			init();
+			animate();
+
+			var pitch = 0, roll = 30, yaw = 30;
+
+			function init() {
+				container = document.getElementById('scaryface');
+
+				camera = new THREE.PerspectiveCamera(35, 320 / 240, 1, 10000);
+				camera.position.z = 900;
+
+				scene = new THREE.Scene();
+
+				// LIGHTS
+
+				directionalLight = new THREE.DirectionalLight(0xffeedd, 1.5);
+				directionalLight.position.set(1, 0.5, 1);
+				scene.add(directionalLight);
+
+				directionalLight = new THREE.DirectionalLight(0xddddff, 0.5);
+				directionalLight.position.set(-1, 0.5, -1);
+				scene.add(directionalLight);
+
+				// MATERIALS
+
+				var diffuse = 0xbbbbbb, specular = 0x070707, shininess = 50;
+
+				specular = 0x555555;
+
+				var shader = THREE.ShaderSkin["skin"];
+
+				var uniformsUV = THREE.UniformsUtils.clone(shader.uniforms);
+
+				uniformsUV["tNormal"].value = THREE.ImageUtils.loadTexture("obj/leeperrysmith/Infinite-Level_02_Tangent_SmoothUV.jpg");
+				uniformsUV["uNormalScale"].value = -1.5;
+
+				uniformsUV["tDiffuse"].value = THREE.ImageUtils.loadTexture("obj/leeperrysmith/Map-COL.jpg");
+
+				uniformsUV["passID"].value = 0;
+
+				uniformsUV["diffuse"].value.setHex(diffuse);
+				uniformsUV["specular"].value.setHex(specular);
+
+				uniformsUV["uRoughness"].value = 0.185;
+				uniformsUV["uSpecularBrightness"].value = 0.7;
+
+				var uniforms = THREE.UniformsUtils.clone(uniformsUV);
+				uniforms["tDiffuse"].value = uniformsUV["tDiffuse"].value;
+				uniforms["tNormal"].value = uniformsUV["tNormal"].value;
+				uniforms["passID"].value = 1;
+
+				var parameters = { fragmentShader: shader.fragmentShader, vertexShader: shader.vertexShader, uniforms: uniforms, lights: true, derivatives: true };
+				var parametersUV = { fragmentShader: shader.fragmentShader, vertexShader: shader.vertexShaderUV, uniforms: uniformsUV, lights: true, derivatives: true };
+
+				material = new THREE.ShaderMaterial(parameters);
+				var materialUV = new THREE.ShaderMaterial(parametersUV);
+
+				// LOADER
+
+				loader = new THREE.JSONLoader();
+				loader.load( "obj/leeperrysmith/LeePerrySmith.js", function(geometry) { createScene(geometry, 100, material) });
+
+				// RENDERER
+
+				renderer = new THREE.WebGLRenderer({ antialias: false, alpha: true });
+				renderer.setClearColor(0, 0);
+				renderer.setPixelRatio(window.devicePixelRatio);
+				renderer.setSize(320, 240);
+				renderer.autoClear = false;
+
+				if (container) {
+					container.appendChild(renderer.domElement);
+				}
+
+				// POSTPROCESSING
+
+				var renderModelUV = new THREE.RenderPass(scene, camera, materialUV, new THREE.Color(0x575757));
+
+				var effectCopy = new THREE.ShaderPass(THREE.CopyShader);
+
+				var effectBloom1 = new THREE.BloomPass(1, 15, 2, 240);
+				var effectBloom2 = new THREE.BloomPass(1, 25, 3, 240);
+				var effectBloom3 = new THREE.BloomPass(1, 25, 4, 240);
+
+				effectBloom1.clear = true;
+				effectBloom2.clear = true;
+				effectBloom3.clear = true;
+
+				effectCopy.renderToScreen = true;
+
+				//
+
+				var pars = {
+					minFilter: THREE.LinearMipmapLinearFilter,
+					magFilter: THREE.LinearFilter,
+					format: THREE.RGBFormat,
+					stencilBuffer: false
+				};
+
+				var rtwidth = 240;
+				var rtheight = 240;
+
+				//
+
+				composerScene = new THREE.EffectComposer(renderer, new THREE.WebGLRenderTarget(rtwidth, rtheight, pars));
+				composerScene.addPass(renderModelUV);
+
+				renderScene = new THREE.TexturePass(composerScene.renderTarget2);
+
+				//
+
+				composerUV1 = new THREE.EffectComposer(renderer, new THREE.WebGLRenderTarget(rtwidth, rtheight, pars));
+
+				composerUV1.addPass(renderScene);
+				composerUV1.addPass(effectBloom1);
+
+				composerUV2 = new THREE.EffectComposer(renderer, new THREE.WebGLRenderTarget(rtwidth, rtheight, pars));
+
+				composerUV2.addPass(renderScene);
+				composerUV2.addPass(effectBloom2);
+
+				composerUV3 = new THREE.EffectComposer(renderer, new THREE.WebGLRenderTarget(rtwidth, rtheight, pars));
+
+				composerUV3.addPass(renderScene);
+				composerUV3.addPass(effectBloom3);
+
+				//
+
+				var effectBeckmann = new THREE.ShaderPass(THREE.ShaderSkin["beckmann"]);
+				composerBeckmann = new THREE.EffectComposer(renderer, new THREE.WebGLRenderTarget(rtwidth, rtheight, pars));
+				composerBeckmann.addPass(effectBeckmann);
+
+				//
+
+				uniforms["tBlur1"].value = composerScene.renderTarget2;
+				uniforms["tBlur2"].value = composerUV1.renderTarget2;
+				uniforms["tBlur3"].value = composerUV2.renderTarget2;
+				uniforms["tBlur4"].value = composerUV3.renderTarget2;
+
+				uniforms["tBeckmann"].value = composerBeckmann.renderTarget1;
+			}
+
+			function createScene(geometry, scale, material) {
+				mesh = new THREE.Mesh(geometry, material);
+				mesh.position.y = -50;
+				mesh.scale.set(scale, scale, scale);
+
+				scene.add(mesh);
+			}
+
+			function animate() {
+				requestAnimationFrame(animate);
+				render();
+			}
+
+			function render() {
+				if (mesh) {
+					mesh.rotation.x = yaw * 3.1415926535 / 180;
+					mesh.rotation.y = pitch * 3.1415926535 / 180;
+					mesh.rotation.z = roll * 3.1415926535 / 180;
+				}
+
+				renderer.clear();
+
+				if (firstPass) {
+					composerBeckmann.render();
+					firstPass = false;
+				}
+
+				composerScene.render();
+
+				composerUV1.render();
+				composerUV2.render();
+				composerUV3.render();
+
+				renderer.render(scene, camera);
+			}
 		};
 	}]);
 })();

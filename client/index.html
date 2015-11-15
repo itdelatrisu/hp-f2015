@@ -15,6 +15,25 @@
 	<script src="js/main.js"></script>
 	<link rel="stylesheet" href="lib/bootstrap/css/bootstrap.min.css" type="text/css">
 	<link rel="stylesheet" href="css/styles.css" type="text/css">
+	
+	
+	
+	<script src="http://threejs.org/build/three.min.js"></script>
+	<script src="http://threejs.org/examples/js/ShaderSkin.js"></script>
+
+	<script src="http://threejs.org/examples/js/shaders/BleachBypassShader.js"></script>
+	<script src="http://threejs.org/examples/js/shaders/ConvolutionShader.js"></script>
+	<script src="http://threejs.org/examples/js/shaders/CopyShader.js"></script>
+
+	<script src="http://threejs.org/examples/js/postprocessing/EffectComposer.js"></script>
+	<script src="http://threejs.org/examples/js/postprocessing/RenderPass.js"></script>
+	<script src="http://threejs.org/examples/js/postprocessing/BloomPass.js"></script>
+	<script src="http://threejs.org/examples/js/postprocessing/TexturePass.js"></script>
+	<script src="http://threejs.org/examples/js/postprocessing/ShaderPass.js"></script>
+	<script src="http://threejs.org/examples/js/postprocessing/MaskPass.js"></script>
+
+	<script src="http://threejs.org/examples/js/Detector.js"></script>
+	<script src="http://threejs.org/examples/js/libs/stats.min.js"></script>
 </head>
 <body ng-controller="MainCtrl">
 	<div class="container">
@@ -51,10 +70,11 @@
 									<div ng-if="videoOn">
 										<div class="form-group">
 											<div style="width:320px;height:240px;margin:0 auto">
-												<span style="position:absolute;margin:0;">
+												<span style="position:absolute;margin:0;-moz-transform: scale(-1, 1);-webkit-transform: scale(-1, 1);-o-transform: scale(-1, 1);-ms-transform: scale(-1, 1);transform: scale(-1, 1);">
 													<webcam channel="channel" on-stream="onStream(stream)" on-streaming="onSuccess()" on-error="onError(err)"></webcam>
 												</span>
-												<canvas id="snapshot" style="position:absolute;margin:0;"></canvas>
+												<span id="scaryface" style="position:absolute;margin:0;width:100%;height:100%;opacity:0.7;"></span>
+												<canvas id="snapshot" style="position:absolute;margin:0;-moz-transform: scale(-1, 1);-webkit-transform: scale(-1, 1);-o-transform: scale(-1, 1);-ms-transform: scale(-1, 1);transform: scale(-1, 1);"></canvas>
 											</div>
 											<div class="alert alert-error" ng-show="webcamError">
 												<span>Webcam could not be started. Did you give access to it?</span>
@@ -94,10 +114,10 @@
 									<div ng-if="videoOn">
 										<div class="form-group">
 											<div style="width:320px;height:240px;margin:0 auto">
-												<span style="position:absolute;margin:0;">
+												<span style="position:absolute;margin:0;-moz-transform: scale(-1, 1);-webkit-transform: scale(-1, 1);-o-transform: scale(-1, 1);-ms-transform: scale(-1, 1);transform: scale(-1, 1);">
 													<webcam channel="channel" on-stream="onStream(stream)" on-streaming="onSuccess()" on-error="onError(err)"></webcam>
 												</span>
-												<canvas id="snapshot" style="position:absolute;margin:0;"></canvas>
+												<canvas id="snapshot" style="position:absolute;margin:0;-moz-transform: scale(-1, 1);-webkit-transform: scale(-1, 1);-o-transform: scale(-1, 1);-ms-transform: scale(-1, 1);transform: scale(-1, 1);"></canvas>
 											</div>
 											<div class="alert alert-error" ng-show="webcamError">
 												<span>Webcam could not be started. Did you give access to it?</span>
