@@ -198,6 +198,9 @@ module.exports = function(app) {
 			var userId = results[0].id;
 			var faceId = results[0].faceId;
 			var faceIdExpired = results[0].faceIdExpired;
+			var targetPitch = results[0].pitch;
+			var targetRoll = results[0].roll;
+			var targetYaw = results[0].yaw;
 
 			function compareFaces(faceId1) {
 				// call API and get face ID
@@ -217,6 +220,20 @@ module.exports = function(app) {
 						return;
 					}
 					var faceId2 = arr[0].faceId;
+
+					// check head pose against target parameters
+					var pitch = arr[0].attributes.headPose.pitch;
+					var roll = arr[0].attributes.headPose.roll;
+					var yaw = arr[0].attributes.headPose.yaw;
+					//if (Math.abs(targetPitch - pitch) > ?)  // not implemented
+					if (Math.abs(targetRoll - roll) > 4) {
+						sendResponse(res, ERROR, 'Roll ' + roll + ' too far from target value (' + targetRoll + ').');
+						return;
+					}
+					if (Math.abs(targetYaw - yaw) > 10) {
+						sendResponse(res, ERROR, 'Yaw ' + yaw + ' too far from target value (' + targetYaw + ').');
+						return;
+					}
 
 					// call API and verify IDs
 					api.verify(faceId1, faceId2, function(error, response, body) {
