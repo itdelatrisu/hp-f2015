@@ -177,7 +177,7 @@ module.exports = function(app) {
 		var imageBuf = new Buffer(imageDataBase64, 'base64');
 
 		// check if user exists
-		var queryString = 'SELECT `id`,`faceId`,(`faceIdExpiration` <= NOW()) AS expired FROM `users` WHERE `username` = ?';
+		var queryString = 'SELECT *,(`faceIdExpiration` <= NOW()) AS faceIdExpired,(`authExpiration` <= NOW()) AS authExpired FROM `users` WHERE `username` = ?';
 		pool.query(queryString, [username], function(err, results) {
 			if (err) {
 				sendSQLError(res, err);
@@ -187,9 +187,17 @@ module.exports = function(app) {
 				sendResponse(res, ERROR, 'That user doesn\'t exist!');
 				return;
 			}
+			if (results[0].authExpired) {
+				sendResponse(res, ERROR, 'The head pose expired. Please generate new parameters.');
+				return;
+			}
+			if (!results[0].authExpiration) {
+				sendResponse(res, ERROR, 'You must generate head pose parameters.');
+				return;
+			}
 			var userId = results[0].id;
 			var faceId = results[0].faceId;
-			var expired = results[0].expired;
+			var faceIdExpired = results[0].faceIdExpired;
 
 			function compareFaces(faceId1) {
 				// call API and get face ID
@@ -227,7 +235,7 @@ module.exports = function(app) {
 			}
 
 			// use existing face id
-			if (!expired) {
+			if (!faceIdExpired) {
 				compareFaces(faceId);
 				return;
 			}
