@@ -137,7 +137,7 @@ module.exports = function(app) {
 
 			// roll new parameters
 			var pitch = 0.0;  // not implemented by microsoft :)
-			var roll = -30.0 + Math.random() * 60.0;
+			var roll = 0.0;  //-30.0 + Math.random() * 60.0;
 			var yaw = (10.0 + Math.random() * 10.0) * ((Math.random() < 0.5) ? 1 : -1);
 			pitch = parseFloat(pitch.toFixed(1));
 			roll = parseFloat(roll.toFixed(1));
