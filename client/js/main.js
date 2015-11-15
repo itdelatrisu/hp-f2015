@@ -11,7 +11,7 @@
 	var TAB_LOGIN = 'LOGIN',
 	    TAB_REGISTER = 'REGISTER';
 
-	app.controller('MainCtrl', ['$scope', '$http', function($scope, $http) {
+	app.controller('MainCtrl', ['$scope', '$http', '$modal', function($scope, $http, $modal) {
 		$scope.activeTab = TAB_LOGIN;
 		$scope.buttonDisabled = true;
 		$scope.videoOn = false;
@@ -25,6 +25,24 @@
 			height: 240,
 			video: null
 		};
+
+		var modal = null;
+		function openModal() {
+			if (modal)
+				return;
+			modal = $modal.open({
+				animation: false,
+				templateUrl: 'spinner.html',
+				backdrop: 'static',
+				keyboard: false
+			});
+		};
+		function closeModal() {
+			if (modal) {
+				modal.close();
+				modal = null;
+			}
+		}
 
 		// switch tabs
 		function tabReset() {
@@ -64,7 +82,6 @@
 			$scope.submitDisabled = false;
 			$scope.videoOn = true;
 			$scope.registered = false;
-			
 			if (isLogin) {
 				var username = $scope.login_username;
 				var url = AUTH_PARAMS_URL + '?username=' + username;
@@ -84,7 +101,9 @@
 				'image': imageData
 			};
 			console.log(postData);
+			openModal();
 			$http.post(AUTH_URL, postData).success(function(data, status, headers, config) {
+				closeModal();
 				console.log(data);
 				if (data.status === 0) {
 					console.log('Success!');
@@ -101,7 +120,9 @@
 				'image': imageData
 			};
 			console.log(postData);
+			openModal();
 			$http.post(REGISTER_URL, postData).success(function(data, status, headers, config) {
+				closeModal();
 				if (data.status === 0) {
 					console.log('Success!');
 					$scope.registered = true;
