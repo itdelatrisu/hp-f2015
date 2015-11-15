@@ -84,7 +84,7 @@
 											<div class="row">
 												<div class="col-sm-6 col-sm-offset-3">
 													<input type="submit" id="login-snapshot" tabindex="4" class="form-control btn btn-register"
-													       ng-value="(snapshotTaken) ? 'Retake' : 'Take Snapshot!'" ng-click="makeSnapshot()" ng-disabled="!videoLoaded">
+													       ng-value="(snapshotTaken) ? 'Retake' : 'Take Snapshot!'" ng-click="makeSnapshot()" ng-disabled="!videoLoaded || submitDisabled">
 												</div>
 											</div>
 										</div>
@@ -92,7 +92,7 @@
 											<div class="row">
 												<div class="col-sm-6 col-sm-offset-3">
 													<input type="submit" name="login-submit" id="login-submit" tabindex="4" class="form-control btn btn-login" value="Submit"
-														   ng-click="doLogin()" ng-disabled="!snapshotTaken">
+														   ng-click="doLogin()" ng-disabled="!snapshotTaken || submitDisabled">
 												</div>
 											</div>
 										</div>
@@ -127,7 +127,7 @@
 											<div class="row">
 												<div class="col-sm-6 col-sm-offset-3">
 													<input type="submit" id="register-snapshot" tabindex="4" class="form-control btn btn-login"
-													       ng-value="(snapshotTaken) ? 'Retake' : 'Take Snapshot!'" ng-click="makeSnapshot()" ng-disabled="!videoLoaded">
+													       ng-value="(snapshotTaken) ? 'Retake' : 'Take Snapshot!'" ng-click="makeSnapshot()" ng-disabled="!videoLoaded || submitDisabled ">
 												</div>
 											</div>
 										</div>
@@ -135,11 +135,16 @@
 											<div class="row">
 												<div class="col-sm-6 col-sm-offset-3">
 													<input type="submit" name="register-submit" id="register-submit" tabindex="4" class="form-control btn btn-register" value="Submit"
-														   ng-click="doRegister()" ng-disabled="!snapshotTaken">
+														   ng-click="doRegister()" ng-disabled="!snapshotTaken || submitDisabled">
 												</div>
 											</div>
 										</div>
 									</div>
+								</div>
+								
+								<div id="register-confirm" ng-if="registered" class="alert alert-success">
+									<a href="#" class="close" aria-label="close" ng-click="closeRegisteredAlert()">&times;</a>
+									<strong>Success!</strong> Thank you for registering, {{registered_username}}.
 								</div>
 							</div>
 						</div>

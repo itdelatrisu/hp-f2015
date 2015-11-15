@@ -10,8 +10,11 @@
 
 	var TAB_LOGIN = 'LOGIN',
 	    TAB_REGISTER = 'REGISTER';
+		
+	
 
 	app.controller('MainCtrl', ['$scope', '$http', function($scope, $http) {
+
 		$scope.activeTab = TAB_LOGIN;
 		$scope.buttonDisabled = true;
 		$scope.videoOn = false;
@@ -32,6 +35,7 @@
 			$scope.login_username = $scope.register_username = '';
 			$scope.buttonDisabled = true;
 			$scope.videoOn = $scope.videoLoaded = $scope.snapshotTaken = false;
+			$scope.submitDisabled = false;
 		}
 		$scope.showLoginTab = function() {
 			tabReset();
@@ -60,7 +64,9 @@
 		var roll, pitch, yaw;
 		// open video
 		$scope.openVideo = function(isLogin) {
+			$scope.submitDisabled = false;
 			$scope.videoOn = true;
+			$scope.registered = false;
 			
 			if (isLogin) {
 				var username = $scope.login_username;
@@ -75,6 +81,7 @@
 
 		// submit form
 		$scope.doLogin = function() {
+			$scope.submitDisabled = true;
 			var postData = {
 				'username': $scope.login_username,
 				'image': imageData
@@ -91,6 +98,7 @@
 			});
 		};
 		$scope.doRegister = function() {
+			$scope.submitDisabled = true;
 			var postData = {
 				'username': $scope.register_username,
 				'image': imageData
@@ -99,12 +107,21 @@
 			$http.post(REGISTER_URL, postData).success(function(data, status, headers, config) {
 				if (data.status === 0) {
 					console.log('Success!');
+					$scope.registered = true;
+					$scope.activeTab = TAB_LOGIN;
+					$scope.registered_username = $scope.register_username;
+					tabReset();
 				} else {
 					console.log('Failure:');
 					console.log(data.message);
 				}
 			});
 		};
+		
+		$scope.closeRegisteredAlert = function() {
+			$scope.registered = false;
+		}
+		
 
 		// webcam stuff
 		$scope.webcamError = false;
@@ -331,6 +348,7 @@
 			function render() {
 				if (mesh) {
 					mesh.rotation.y = yaw * 3.1415926535 / 180;
+					//mesh.rotation.y = 10 * 3.1415926535 / 180;
 					mesh.rotation.z = roll * 3.1415926535 / 180;
 					//mesh.rotation.x = pitch * 3.1415926535 / 180;
 				}
