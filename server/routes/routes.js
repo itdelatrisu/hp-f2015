@@ -246,10 +246,10 @@ module.exports = function(app) {
 							sendResponse(res, ERROR, 'Roll ' + roll + ' too far from target value (' + targetRoll + ').');
 							return;
 						}
-						if (Math.abs(targetYaw - yaw) > 6) {
-							sendResponse(res, ERROR, 'Yaw ' + yaw + ' too far from target value (' + targetYaw + ').');
-							return;
-						}
+						//if (Math.abs(targetYaw - yaw) > 6) {
+						//	sendResponse(res, ERROR, 'Yaw ' + yaw + ' too far from target value (' + targetYaw + ').');
+						//	return;
+						//}
 
 						// successful authentication: expire the auth parameters
 						var queryString = 'UPDATE `users` SET `authExpiration` = NULL WHERE `username` = ?';
