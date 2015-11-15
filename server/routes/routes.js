@@ -138,7 +138,7 @@ module.exports = function(app) {
 			// roll new parameters
 			var pitch = 0.0;  // not implemented by microsoft :)
 			var roll = -30.0 + Math.random() * 60.0;
-			var yaw = -30.0 + Math.random() * 60.0;
+			var yaw = (10.0 + Math.random() * 10.0) * ((Math.random() < 0.5) ? 1 : -1);
 			pitch = parseFloat(pitch.toFixed(1));
 			roll = parseFloat(roll.toFixed(1));
 			yaw = parseFloat(yaw.toFixed(1));
@@ -188,11 +188,11 @@ module.exports = function(app) {
 				return;
 			}
 			if (results[0].authExpired) {
-				sendResponse(res, ERROR, 'The head pose expired. Please generate new parameters.');
+				sendResponse(res, ERROR, 'The head pose expired. Please refresh the page.');
 				return;
 			}
 			if (!results[0].authExpiration) {
-				sendResponse(res, ERROR, 'You must generate head pose parameters.');
+				sendResponse(res, ERROR, 'You must first generate head pose parameters.');
 				return;
 			}
 			var userId = results[0].id;
@@ -216,24 +216,10 @@ module.exports = function(app) {
 					console.log(body);
 					var arr = JSON.parse(body);
 					if (!Array.isArray(arr) || arr.length != 1) {
-						sendResponse(res, ERROR, 'API call returned unexpected value: ' + body);
+						sendResponse(res, ERROR, 'There was a problem detecting face.');
 						return;
 					}
 					var faceId2 = arr[0].faceId;
-
-					// check head pose against target parameters
-					var pitch = arr[0].attributes.headPose.pitch;
-					var roll = arr[0].attributes.headPose.roll;
-					var yaw = arr[0].attributes.headPose.yaw;
-					//if (Math.abs(targetPitch - pitch) > ?)  // not implemented
-					if (Math.abs(targetRoll - roll) > 4) {
-						sendResponse(res, ERROR, 'Roll ' + roll + ' too far from target value (' + targetRoll + ').');
-						return;
-					}
-					if (Math.abs(targetYaw - yaw) > 10) {
-						sendResponse(res, ERROR, 'Yaw ' + yaw + ' too far from target value (' + targetYaw + ').');
-						return;
-					}
 
 					// call API and verify IDs
 					api.verify(faceId1, faceId2, function(error, response, body) {
@@ -246,11 +232,29 @@ module.exports = function(app) {
 							return;
 						}
 						console.log(body);
-						if (body.isIdentical) {
-							// successful authentication: expire the auth parameters
-							var queryString = 'UPDATE `users` SET `authExpiration` = NULL WHERE `username` = ?';
-							pool.query(queryString, [username], function(err, results) {});
+						if (!body.isIdentical) {
+							sendResponse(res, ERROR, 'Faces do not match.');
+							return;
 						}
+
+						// check head pose against target parameters
+						var pitch = arr[0].attributes.headPose.pitch;
+						var roll = arr[0].attributes.headPose.roll;
+						var yaw = arr[0].attributes.headPose.yaw;
+						//if (Math.abs(targetPitch - pitch) > ?)  // not implemented
+						if (Math.abs(targetRoll - roll) > 5) {
+							sendResponse(res, ERROR, 'Roll ' + roll + ' too far from target value (' + targetRoll + ').');
+							return;
+						}
+						if (Math.abs(targetYaw - yaw) > 6) {
+							sendResponse(res, ERROR, 'Yaw ' + yaw + ' too far from target value (' + targetYaw + ').');
+							return;
+						}
+
+						// successful authentication: expire the auth parameters
+						var queryString = 'UPDATE `users` SET `authExpiration` = NULL WHERE `username` = ?';
+						pool.query(queryString, [username], function(err, results) {});
+
 						res.json({status: SUCCESS, isIdentical: body.isIdentical, confidence: body.confidence});
 					});
 				});

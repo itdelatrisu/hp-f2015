@@ -24,6 +24,7 @@
 		$scope.videoOn = false;
 		$scope.videoLoaded = false;
 		$scope.snapshotTaken = false;
+		$scope.loginError = null;
 		$rootScope.noLogin = false;
 
 		var _video = null, patData = null, imageData = null;
@@ -59,6 +60,7 @@
 			$scope.buttonDisabled = true;
 			$scope.videoOn = $scope.videoLoaded = $scope.snapshotTaken = false;
 			$scope.submitDisabled = false;
+			$scope.loginError = null;
 		}
 		$scope.showLoginTab = function() {
 			tabReset();
@@ -116,11 +118,13 @@
 				if (data.status === 0) {
 					console.log('Success!');
 					$rootScope.noLogin = true;
+					$scope.loginError = null;
 					$scope.$emit('loginEvent', $scope.login_username);
 				} else {
 					console.log('Failure:');
 					console.log(data.message);
 					$scope.submitDisabled = false;
+					$scope.loginError = data.message;
 				}
 			});
 		};
@@ -154,6 +158,9 @@
 		$scope.closeRegisteredAlert = function() {
 			$scope.registered = false;
 			$scope.registerFailed = false;
+		};
+		$scope.closeLoginErrorAlert = function() {
+			$scope.loginError = null;
 		};
 
 		// webcam stuff

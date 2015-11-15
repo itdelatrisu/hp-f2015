@@ -86,8 +86,12 @@
 									<strong>Success!</strong> Thank you for registering, {{registered_username}}.
 								</div>
 								<div id="register-error" ng-if="registerFailed" class="alert alert-danger">
-									<a href="#" class="close" aria-label="close" ng-click="closeRegisterFailedAlert()">&times;</a>
+									<a href="#" class="close" aria-label="close" ng-click="closeRegisteredAlert()">&times;</a>
 									<strong>Error!</strong> Something went wrong. &#9785; Please try again.
+								</div>
+								<div id="login-error" ng-if="loginError" class="alert alert-danger">
+									<a href="#" class="close" aria-label="close" ng-click="closeLoginErrorAlert()">&times;</a>
+									<strong>Error!</strong> {{loginError}}
 								</div>
 								
 								<div id="login-form" ng-if="activeTab === 'LOGIN'">
