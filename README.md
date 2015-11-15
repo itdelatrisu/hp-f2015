@@ -1,7 +1,7 @@
-# MOE Auth
-MOE: Orientation and Emotion Authentication
+# P-Auth
+Pupil Authentication
 
-We leverage [Project Oxford's](https://www.projectoxford.ai/) emotion and face recognition APIs to create a picture-resistent non-video facial recognition authentication system.
+We leverage [Project Oxford's](https://www.projectoxford.ai/) face recognition API to create a face authentication system that is resistent to pictures without sending video over the network.
 
 ### Server
   ```
