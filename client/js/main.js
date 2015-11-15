@@ -218,7 +218,7 @@
 									$scope.initProg = false;
 								}
 							});
-						}, 3000);
+						}, 2000);
 					} else {
 						console.log('Failure:');
 						console.log(data.message);

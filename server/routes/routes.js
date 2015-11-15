@@ -341,11 +341,11 @@ module.exports = function(app) {
 							console.log(newParams);
 							//if (Math.abs(params.pitch - newParams.pitch) > ?)  // not implemented
 							if (Math.abs(params.yaw - newParams.yaw) > 10) {
-								sendResponse(res, ERROR, 'Yaw too far from original value.');
+								sendResponse(res, ERROR, 'Please keep your head still and try again.');
 								return;
 							}
 							if (Math.abs(params.roll - newParams.roll) > 3) {
-								sendResponse(res, ERROR, 'Roll too far from original value.');
+								sendResponse(res, ERROR, 'Please keep your head still and try again.');
 								return;
 							}
 							var dxLeft = (newParams.pupilLeft.x - newParams.noseTip.x) - (params.pupilLeft.x - params.noseTip.x);
@@ -371,7 +371,7 @@ module.exports = function(app) {
 							console.log('threshold = ' + threshold);
 							console.log('diff = ' + Math.abs(angleTarget - angleAvg));
 							if (Math.abs(angleTarget - angleAvg) > threshold) {
-								sendResponse(res, ERROR, 'Angle too far from threshold.');
+								sendResponse(res, ERROR, 'Please look in the specified direction with your eyes only.');
 								return;
 							}
 
