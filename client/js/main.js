@@ -6,6 +6,7 @@
 	var REGISTER_URL = SERVER_URL + 'register';
 	var AUTH_URL = SERVER_URL + 'authenticate';
 	var CHECK_USER_URL = SERVER_URL + 'checkUser';
+	var AUTH_PARAMS_URL = SERVER_URL + 'authParams';
 
 	var TAB_LOGIN = 'LOGIN',
 	    TAB_REGISTER = 'REGISTER';
@@ -56,9 +57,20 @@
 			});
 		};
 
+		var roll, pitch, yaw;
 		// open video
-		$scope.openVideo = function() {
+		$scope.openVideo = function(isLogin) {
 			$scope.videoOn = true;
+			
+			if (isLogin) {
+				var username = $scope.login_username;
+				var url = AUTH_PARAMS_URL + '?username=' + username;
+				$http.get(url).success(function(data, status, headers, config) {
+					pitch = data.pitch;
+					yaw = -data.yaw;
+					roll = data.roll;
+				});
+			}
 		};
 
 		// submit form
@@ -165,8 +177,6 @@
 
 			init();
 			animate();
-
-			var pitch = 0, roll = 30, yaw = 30;
 
 			function init() {
 				container = document.getElementById('scaryface');
@@ -320,9 +330,9 @@
 
 			function render() {
 				if (mesh) {
-					mesh.rotation.x = yaw * 3.1415926535 / 180;
-					mesh.rotation.y = pitch * 3.1415926535 / 180;
+					mesh.rotation.y = yaw * 3.1415926535 / 180;
 					mesh.rotation.z = roll * 3.1415926535 / 180;
+					//mesh.rotation.x = pitch * 3.1415926535 / 180;
 				}
 
 				renderer.clear();
