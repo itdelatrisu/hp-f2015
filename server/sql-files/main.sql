@@ -11,9 +11,17 @@ CREATE TABLE IF NOT EXISTS `users` (
 	`username` VARCHAR(32) NOT NULL UNIQUE COMMENT 'unique identifier created by the user',
 	`faceId` TEXT NOT NULL COMMENT 'face ID',
 	`faceIdExpiration` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'the face ID expiration date',
-	`pitch` DECIMAL(5,1) COMMENT 'head pitch (for authentication)',
-	`roll` DECIMAL(5,1) COMMENT 'head roll (for authentication)',
-	`yaw` DECIMAL(5,1) COMMENT 'head pitch (for authentication)',
-	`authExpiration` TIMESTAMP NULL COMMENT 'head pose parameter expiration date',
 	PRIMARY KEY (`id`)
+) ENGINE=MyISAM;
+
+--
+-- Table structure for table `auth`
+--
+CREATE TABLE IF NOT EXISTS `auth` (
+	`id` INT(11) UNSIGNED NOT NULL COMMENT 'user ID',
+	`dir` ENUM('N','S','E','W') NOT NULL COMMENT 'the direction',
+	`nonce` INT(11) NOT NULL COMMENT 'the nonce',
+	`params` TEXT NOT NULL COMMENT 'the parameters, in JSON',
+	`authExpiration` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'the expiration date',
+	FOREIGN KEY (id) REFERENCES users(id)
 ) ENGINE=MyISAM;

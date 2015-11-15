@@ -101,69 +101,12 @@ module.exports = function(app) {
 		});
 	});
 
-	// Generates random head pose parameters (roll, yaw, pitch) for authentication.
-	// These are temporary and expire immediately upon successful login.
-	// Parameters: username (string)
-	// Returns:
-	//   {'status': 0, 'pitch': number, 'roll': number, 'yaw': number} on success
-	//   {'status': 1, 'message': string} on error
-	app.get('/authParams', function(req, res) {
-		if (!req.query.hasOwnProperty('username')) {
-			sendResponse(res, ERROR, 'Missing required field.');
-			return;
-		}
-		var username = req.query.username;
-		var queryString = 'SELECT `pitch`,`roll`,`yaw`,`authExpiration`,(`authExpiration` <= NOW()) AS expired FROM `users` WHERE `username` = ?';
-		pool.query(queryString, [username], function(err, results) {
-			if (err) {
-				sendSQLError(res, err);
-				return;
-			}
-			if (!results.length) {
-				sendResponse(res, ERROR, 'That user doesn\'t exist!');
-				return;
-			}
-
-			// use previous parameters if non-expired
-			if (results[0].authExpiration && !results[0].expired) {
-				res.json({
-					status: SUCCESS,
-					pitch: results[0].pitch,
-					roll: results[0].roll,
-					yaw: results[0].yaw
-				});
-				return;
-			}
-
-			// roll new parameters
-			var pitch = 0.0;  // not implemented by microsoft :)
-			var roll = 0.0;  //-30.0 + Math.random() * 60.0;
-			var yaw = (10.0 + Math.random() * 10.0) * ((Math.random() < 0.5) ? 1 : -1);
-			pitch = parseFloat(pitch.toFixed(1));
-			roll = parseFloat(roll.toFixed(1));
-			yaw = parseFloat(yaw.toFixed(1));
-			queryString = 'UPDATE `users` SET `pitch` = ?,`roll` = ?,`yaw` = ?,`authExpiration` = NOW() + INTERVAL 1 MINUTE WHERE `username` = ?';
-			pool.query(queryString, [pitch, roll, yaw, username], function(err, results) {
-				if (err) {
-					sendSQLError(res, err);
-					return;
-				}
-				res.json({
-					status: SUCCESS,
-					pitch: pitch,
-					roll: roll,
-					yaw: yaw
-				});
-			});
-		});
-	});
-
-	// Authenticates a user.
+	// First-stage authentication for a user.
 	// Parameters: username (string), image (base64 png image)
 	// Returns:
-	//   {'status': 0, 'isIdentical': boolean, 'confidence': number} on success
-	//   {'status': 1, 'message': string} on error
-	app.post('/authenticate', function(req, res) {
+	//   {'status': 0, 'dir': string, 'nonce': number} on success
+	//   {'status': 1, 'message': string} on failure
+	app.post('/auth1', function(req, res) {
 		var postData = req.body;
 		if (!postData.hasOwnProperty('username') || !postData.hasOwnProperty('image')) {
 			sendResponse(res, ERROR, 'Missing required field.');
@@ -177,7 +120,7 @@ module.exports = function(app) {
 		var imageBuf = new Buffer(imageDataBase64, 'base64');
 
 		// check if user exists
-		var queryString = 'SELECT *,(`faceIdExpiration` <= NOW()) AS faceIdExpired,(`authExpiration` <= NOW()) AS authExpired FROM `users` WHERE `username` = ?';
+		var queryString = 'SELECT `id`,`faceId`,(`faceIdExpiration` <= NOW()) AS faceIdExpired FROM `users` WHERE `username` = ?';
 		pool.query(queryString, [username], function(err, results) {
 			if (err) {
 				sendSQLError(res, err);
@@ -187,20 +130,9 @@ module.exports = function(app) {
 				sendResponse(res, ERROR, 'That user doesn\'t exist!');
 				return;
 			}
-			if (results[0].authExpired) {
-				sendResponse(res, ERROR, 'The head pose expired. Please refresh the page.');
-				return;
-			}
-			if (!results[0].authExpiration) {
-				sendResponse(res, ERROR, 'You must first generate head pose parameters.');
-				return;
-			}
 			var userId = results[0].id;
 			var faceId = results[0].faceId;
 			var faceIdExpired = results[0].faceIdExpired;
-			var targetPitch = results[0].pitch;
-			var targetRoll = results[0].roll;
-			var targetYaw = results[0].yaw;
 
 			function compareFaces(faceId1) {
 				// call API and get face ID
@@ -237,25 +169,25 @@ module.exports = function(app) {
 							return;
 						}
 
-						// check head pose against target parameters
-						var pitch = arr[0].attributes.headPose.pitch;
-						var roll = arr[0].attributes.headPose.roll;
-						var yaw = arr[0].attributes.headPose.yaw;
-						//if (Math.abs(targetPitch - pitch) > ?)  // not implemented
-						if (Math.abs(targetRoll - roll) > 5) {
-							sendResponse(res, ERROR, 'Roll ' + roll + ' too far from target value (' + targetRoll + ').');
-							return;
-						}
-						//if (Math.abs(targetYaw - yaw) > 6) {
-						//	sendResponse(res, ERROR, 'Yaw ' + yaw + ' too far from target value (' + targetYaw + ').');
-						//	return;
-						//}
+						// get target parameters
+						var params = {
+							pitch: arr[0].attributes.headPose.pitch,
+							roll: arr[0].attributes.headPose.roll,
+							yaw: arr[0].attributes.headPose.yaw,
+							pupilLeft: arr[0].faceLandmarks.pupilLeft,
+							pupilRight: arr[0].faceLandmarks.pupilRight,
+							noseTip: arr[0].faceLandmarks.noseTip
+						};
 
-						// successful authentication: expire the auth parameters
-						var queryString = 'UPDATE `users` SET `authExpiration` = NULL WHERE `username` = ?';
-						pool.query(queryString, [username], function(err, results) {});
+						// generate nonce and direction
+						var nonce = Math.floor(Math.random() * (1 << 31 - 1));
+						var dir = 'NSEW'.charAt(Math.floor(Math.random() * 4));
 
-						res.json({status: SUCCESS, isIdentical: body.isIdentical, confidence: body.confidence});
+						// insert into database
+						var queryString = 'INSERT INTO `auth` VALUES (?, ?, ?, ?, NOW() + INTERVAL 1 MINUTE)';
+						pool.query(queryString, [userId, dir, nonce, JSON.stringify(params)], function(err, results) {});
+
+						res.json({status: SUCCESS, dir: dir, nonce: nonce});
 					});
 				});
 			}
@@ -299,6 +231,196 @@ module.exports = function(app) {
 						}
 						console.log('Renewed face ID for user ' + userId + ' (' + username +')');
 						compareFaces(faceId);
+					});
+				});
+			});
+		});
+	});
+
+	// Second-stage authentication for a user.
+	// Parameters: nonce (number), image (base64 png image)
+	// Returns: {'status': 0|1, 'message': string}
+	app.post('/auth2', function(req, res) {
+		var postData = req.body;
+		if (!postData.hasOwnProperty('nonce') || !postData.hasOwnProperty('image')) {
+			sendResponse(res, ERROR, 'Missing required field.');
+			return;
+		}
+
+		// TODO: validate image and nonce
+		var nonce = postData.nonce;
+		var image = postData.image;
+		var imageDataBase64 = image.replace(/^data:image\/png;base64,/, '');
+		var imageBuf = new Buffer(imageDataBase64, 'base64');
+
+		// check if nonce exists
+		var queryString = 'SELECT *,(`authExpiration` <= NOW()) AS authExpired FROM `auth` WHERE `nonce` = ?';
+		pool.query(queryString, [nonce], function(err, results) {
+			if (err) {
+				sendSQLError(res, err);
+				return;
+			}
+			if (!results.length) {
+				sendResponse(res, ERROR, 'That nonce doesn\'t exist!');
+				return;
+			}
+			var userId = results[0].id;
+			var dir = results[0].dir;
+			var params = JSON.parse(results[0].params);
+			var authExpired = results[0].authExpired;
+
+			// delete from database
+			var queryString = 'DELETE FROM `auth` WHERE `nonce` = ?';
+			pool.query(queryString, [nonce], function(err, results) {});
+
+			// check for expiration
+			if (authExpired) {
+				sendResponse(res, ERROR, 'The request has expired. Please refresh the page.');
+				return;
+			}
+
+			// get faceId
+			queryString = 'SELECT `faceId`,(`faceIdExpiration` <= NOW()) AS faceIdExpired FROM `users` WHERE `id` = ?';
+			pool.query(queryString, [userId], function(err, results) {
+				if (err) {
+					sendSQLError(res, err);
+					return;
+				}
+				if (!results.length) {
+					sendResponse(res, ERROR, 'That user doesn\'t exist!');
+					return;
+				}
+				var faceId = results[0].faceId;
+				var faceIdExpired = results[0].faceIdExpired;
+
+				function compareFaces(faceId1) {
+					// call API and get face ID
+					api.faceDetect(imageBuf, function(error, response, body) {
+						if (error) {
+							sendResponse(res, ERROR, 'API call failed.');
+							return;
+						}
+						if (response.statusCode != 200) {
+							sendResponse(res, ERROR, 'API call returned status code ' + response.statusCode + ': ' + body);
+							return;
+						}
+						console.log(body);
+						var arr = JSON.parse(body);
+						if (!Array.isArray(arr) || arr.length != 1) {
+							sendResponse(res, ERROR, 'There was a problem detecting face.');
+							return;
+						}
+						var faceId2 = arr[0].faceId;
+
+						// call API and verify IDs
+						api.verify(faceId1, faceId2, function(error, response, body) {
+							if (error) {
+								sendResponse(res, ERROR, 'API call failed.');
+								return;
+							}
+							if (response.statusCode != 200) {
+								sendResponse(res, ERROR, 'API call returned status code ' + response.statusCode + ': ' + JSON.stringify(body));
+								return;
+							}
+							console.log(body);
+							if (!body.isIdentical) {
+								sendResponse(res, ERROR, 'Faces do not match.');
+								return;
+							}
+
+							// compare target parameters
+							var newParams = {
+								pitch: arr[0].attributes.headPose.pitch,
+								roll: arr[0].attributes.headPose.roll,
+								yaw: arr[0].attributes.headPose.yaw,
+								pupilLeft: arr[0].faceLandmarks.pupilLeft,
+								pupilRight: arr[0].faceLandmarks.pupilRight,
+								noseTip: arr[0].faceLandmarks.noseTip
+							};
+							console.log(params);
+							console.log(newParams);
+							//if (Math.abs(params.pitch - newParams.pitch) > ?)  // not implemented
+							if (Math.abs(params.yaw - newParams.yaw) > 10) {
+								sendResponse(res, ERROR, 'Yaw too far from original value.');
+								return;
+							}
+							if (Math.abs(params.roll - newParams.roll) > 3) {
+								sendResponse(res, ERROR, 'Roll too far from original value.');
+								return;
+							}
+							var dxLeft = (newParams.pupilLeft.x - newParams.noseTip.x) - (params.pupilLeft.x - params.noseTip.x);
+							var dyLeft = (newParams.pupilLeft.y - newParams.noseTip.y) - (params.pupilLeft.y - params.noseTip.y);
+							var dxRight = (newParams.pupilRight.x - newParams.noseTip.x) - (params.pupilRight.x - params.noseTip.x);
+							var dyRight = (newParams.pupilRight.y - newParams.noseTip.y) - (params.pupilRight.y - params.noseTip.y);
+							var angle1 = Math.atan2(dyLeft, dxLeft);
+							var angle2 = Math.atan2(dyRight, dxRight);
+							var angleAvg = (angle1 + angle2) / 2;
+							console.log('angle1 = ' + angle1);
+							console.log('angle2 = ' + angle2);
+							console.log('angleAvg = ' + angleAvg);
+							var angleTarget;
+							if (dir == 'S') angleTarget = Math.PI / 2;
+							else if (dir == 'N') angleTarget = -Math.PI / 2;
+							else if (dir == 'W') angleTarget = 0;
+							else {
+								angleTarget = Math.PI;
+								angleAvg = Math.abs(angleAvg);
+							}
+							console.log('angleTarget = ' + angleTarget);
+							var threshold = 45 * Math.PI / 180;
+							console.log('threshold = ' + threshold);
+							console.log('diff = ' + Math.abs(angleTarget - angleAvg));
+							if (Math.abs(angleTarget - angleAvg) > threshold) {
+								sendResponse(res, ERROR, 'Angle too far from threshold.');
+								return;
+							}
+
+							console.log('Successfully authenticated.');
+							sendResponse(res, SUCCESS, '');
+						});
+					});
+				}
+
+				// use existing face id
+				if (!faceIdExpired) {
+					compareFaces(faceId);
+					return;
+				}
+
+				// generate a new face ID
+				// read photo from disk
+				fs.readFile(IMG_DIR + userId + '.png', function(err, data) {
+					if (err) {
+						console.log(err);
+						sendResponse(res, ERROR, 'The reference image could not be loaded.');
+					}
+
+					// call API and get face ID
+					api.faceDetect(data, function(error, response, body) {
+						if (error) {
+							sendResponse(res, ERROR, 'API call failed.');
+							return;
+						}
+						if (response.statusCode != 200) {
+							sendResponse(res, ERROR, 'API call returned status code ' + response.statusCode + ': ' + body);
+							return;
+						}
+						console.log(body);
+						var arr = JSON.parse(body);
+						if (!Array.isArray(arr) || arr.length != 1) {
+							sendResponse(res, ERROR, 'API call returned unexpected value: ' + body);
+							return;
+						}
+						faceId = arr[0].faceId;
+						queryString = 'UPDATE `users` SET `faceId` = ?,`faceIdExpiration` = NOW() + INTERVAL 1 DAY WHERE `id` = ?';
+						pool.query(queryString, [faceId, userId], function(err, results) {
+							if (err) {
+								sendSQLError(res, err);
+								return;
+							}
+							console.log('Renewed face ID for user ' + userId + ' (' + username +')');
+							compareFaces(faceId);
+						});
 					});
 				});
 			});

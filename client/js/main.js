@@ -20,7 +20,7 @@
 		});
 	}]);
 
-	app.controller('MainCtrl', ['$scope', '$http', '$rootScope', '$modal', function($scope, $http, $rootScope, $modal) {
+	app.controller('MainCtrl', ['$scope', '$http', '$rootScope', '$modal', '$timeout', function($scope, $http, $rootScope, $modal, $timeout) {
 		$scope.activeTab = TAB_LOGIN;
 		$scope.buttonDisabled = true;
 		$scope.videoOn = false;
@@ -252,11 +252,12 @@
 									$scope.initWait = false;
 									$scope.initProg = false;
 								}
-							};
+							});
 						}, 1500);
 					} else {
 						console.log('Failure:');
 						console.log(data.message);
+						$scope.submitDisabled = false;
 						$scope.loginError = data.message;
 						$scope.initLogin = true;
 						$scope.initWait = false;

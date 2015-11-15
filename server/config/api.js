@@ -9,7 +9,7 @@ var faceAPIkey = '1561097d9a6444f1b5398227ab65cf1e';
 //   callback - function(error, response, body)
 var faceDetect = function(image, callback) {
 	var options = {
-		url: 'https://api.projectoxford.ai/face/v0/detections?analyzesHeadPose=true',
+		url: 'https://api.projectoxford.ai/face/v0/detections?analyzesFaceLandmarks=true&analyzesHeadPose=true',
 		method: 'POST',
 		body: image,
 		headers: {
