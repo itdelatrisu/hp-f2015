@@ -177,7 +177,7 @@ module.exports = function(app) {
 		var imageBuf = new Buffer(imageDataBase64, 'base64');
 
 		// check if user exists
-		var queryString = 'SELECT `faceId`,(`faceIdExpiration` <= NOW()) AS expired FROM `users` WHERE `username` = ?';
+		var queryString = 'SELECT `id`,`faceId`,(`faceIdExpiration` <= NOW()) AS expired FROM `users` WHERE `username` = ?';
 		pool.query(queryString, [username], function(err, results) {
 			if (err) {
 				sendSQLError(res, err);
@@ -187,44 +187,85 @@ module.exports = function(app) {
 				sendResponse(res, ERROR, 'That user doesn\'t exist!');
 				return;
 			}
+			var userId = results[0].id;
+			var faceId = results[0].faceId;
+			var expired = results[0].expired;
 
-			// generate a new face ID
-			if (results[0].expired) {
-				// TODO
-			}
-
-			var faceId1 = results[0].faceId;
-
-			// call API and get face ID
-			api.faceDetect(imageBuf, function(error, response, body) {
-				if (error) {
-					sendResponse(res, ERROR, 'API call failed.');
-					return;
-				}
-				if (response.statusCode != 200) {
-					sendResponse(res, ERROR, 'API call returned status code ' + response.statusCode + ': ' + body);
-					return;
-				}
-				console.log(body);
-				var arr = JSON.parse(body);
-				if (!Array.isArray(arr) || arr.length != 1) {
-					sendResponse(res, ERROR, 'API call returned unexpected value: ' + body);
-					return;
-				}
-				var faceId2 = arr[0].faceId;
-
-				// call API and verify IDs
-				api.verify(faceId1, faceId2, function(error, response, body) {
+			function compareFaces(faceId1) {
+				// call API and get face ID
+				api.faceDetect(imageBuf, function(error, response, body) {
 					if (error) {
 						sendResponse(res, ERROR, 'API call failed.');
 						return;
 					}
 					if (response.statusCode != 200) {
-						sendResponse(res, ERROR, 'API call returned status code ' + response.statusCode + ': ' + JSON.stringify(body));
+						sendResponse(res, ERROR, 'API call returned status code ' + response.statusCode + ': ' + body);
 						return;
 					}
 					console.log(body);
-					res.json({status: SUCCESS, isIdentical: body.isIdentical, confidence: body.confidence});
+					var arr = JSON.parse(body);
+					if (!Array.isArray(arr) || arr.length != 1) {
+						sendResponse(res, ERROR, 'API call returned unexpected value: ' + body);
+						return;
+					}
+					var faceId2 = arr[0].faceId;
+
+					// call API and verify IDs
+					api.verify(faceId1, faceId2, function(error, response, body) {
+						if (error) {
+							sendResponse(res, ERROR, 'API call failed.');
+							return;
+						}
+						if (response.statusCode != 200) {
+							sendResponse(res, ERROR, 'API call returned status code ' + response.statusCode + ': ' + JSON.stringify(body));
+							return;
+						}
+						console.log(body);
+						res.json({status: SUCCESS, isIdentical: body.isIdentical, confidence: body.confidence});
+					});
+				});
+			}
+
+			// use existing face id
+			if (!expired) {
+				compareFaces(faceId);
+				return;
+			}
+
+			// generate a new face ID
+			// read photo from disk
+			fs.readFile(IMG_DIR + userId + '.png', function(err, data) {
+				if (err) {
+					console.log(err);
+					sendResponse(res, ERROR, 'The reference image could not be loaded.');
+				}
+
+				// call API and get face ID
+				api.faceDetect(data, function(error, response, body) {
+					if (error) {
+						sendResponse(res, ERROR, 'API call failed.');
+						return;
+					}
+					if (response.statusCode != 200) {
+						sendResponse(res, ERROR, 'API call returned status code ' + response.statusCode + ': ' + body);
+						return;
+					}
+					console.log(body);
+					var arr = JSON.parse(body);
+					if (!Array.isArray(arr) || arr.length != 1) {
+						sendResponse(res, ERROR, 'API call returned unexpected value: ' + body);
+						return;
+					}
+					faceId = arr[0].faceId;
+					queryString = 'UPDATE `users` SET `faceId` = ?,`faceIdExpiration` = NOW() + INTERVAL 1 DAY WHERE `id` = ?';
+					pool.query(queryString, [faceId, userId], function(err, results) {
+						if (err) {
+							sendSQLError(res, err);
+							return;
+						}
+						console.log('Renewed face ID for user ' + userId + ' (' + username +')');
+						compareFaces(faceId);
+					});
 				});
 			});
 		});
