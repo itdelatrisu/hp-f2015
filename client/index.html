@@ -114,7 +114,14 @@
 												<span style="position:absolute;margin:0;-moz-transform: scale(-1, 1);-webkit-transform: scale(-1, 1);-o-transform: scale(-1, 1);-ms-transform: scale(-1, 1);transform: scale(-1, 1);">
 													<webcam channel="channel" on-stream="onStream(stream)" on-streaming="onSuccess()" on-error="onError(err)"></webcam>
 												</span>
-												<span id="scaryface" style="position:absolute;margin:0;width:100%;height:100%;opacity:0.7;"></span>
+												<!--<span id="scaryface" style="position:absolute;margin:0;width:100%;height:100%;opacity:0.7;"></span>-->
+												<span id="directions-wrapper" style="position:absolute; margin:0; text-align:center; width:320px;height:240px; padding-top: 110px;">
+													<span id="directions" style="background-color: rgba(0, 128, 0, 0.8); border: 3px #003300 solid; border-radius:3px; color: white; padding: 10px;">
+														<span ng-show="initLogin">Look here and press begin.</span>
+														<span ng-show="initWait">Please wait...</span>
+														<span ng-show="initProg">Move your eyes {{eyeDirection}}.</span>
+													</span>
+												</span>
 												<canvas id="snapshot" style="position:absolute;margin:0;-moz-transform: scale(-1, 1);-webkit-transform: scale(-1, 1);-o-transform: scale(-1, 1);-ms-transform: scale(-1, 1);transform: scale(-1, 1);"></canvas>
 											</div>
 											<div class="alert alert-error" ng-show="webcamError">
@@ -125,15 +132,7 @@
 											<div class="row">
 												<div class="col-sm-6 col-sm-offset-3">
 													<input type="submit" id="login-snapshot" tabindex="4" class="form-control btn btn-register"
-													       ng-value="(snapshotTaken) ? 'Retake' : 'Take Snapshot!'" ng-click="makeSnapshot()" ng-disabled="!videoLoaded || submitDisabled">
-												</div>
-											</div>
-										</div>
-										<div class="form-group">
-											<div class="row">
-												<div class="col-sm-6 col-sm-offset-3">
-													<input type="submit" name="login-submit" id="login-submit" tabindex="4" class="form-control btn btn-login" value="Submit"
-														   ng-click="doLogin()" ng-disabled="!snapshotTaken || submitDisabled">
+													       ng-value="(snapshotTaken) ? 'Restart' : 'Begin'" ng-click="beginLogin()" ng-disabled="!videoLoaded || submitDisabled">
 												</div>
 											</div>
 										</div>

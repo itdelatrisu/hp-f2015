@@ -7,6 +7,8 @@
 	var AUTH_URL = SERVER_URL + 'authenticate';
 	var CHECK_USER_URL = SERVER_URL + 'checkUser';
 	var AUTH_PARAMS_URL = SERVER_URL + 'authParams';
+	var AUTH1_URL = SERVER_URL + 'auth1';
+	var AUTH2_URL = SERVER_URL + 'auth2';
 
 	var TAB_LOGIN = 'LOGIN',
 	    TAB_REGISTER = 'REGISTER';
@@ -93,13 +95,14 @@
 			$scope.videoOn = true;
 			$scope.registered = false;
 			if (isLogin) {
-				var username = $scope.login_username;
-				var url = AUTH_PARAMS_URL + '?username=' + username;
-				$http.get(url).success(function(data, status, headers, config) {
-					pitch = data.pitch;
-					yaw = -data.yaw;
-					roll = data.roll;
-				});
+				$scope.initLogin = true;
+				// var username = $scope.login_username;
+				// var url = AUTH_PARAMS_URL + '?username=' + username;
+				// $http.get(url).success(function(data, status, headers, config) {
+					// pitch = data.pitch;
+					// yaw = -data.yaw;
+					// roll = data.roll;
+				// });
 			}
 		};
 
@@ -173,7 +176,7 @@
 			);
 		};
 		$scope.onSuccess = function() {
-			makeScaryFace();
+			// makeScaryFace();
 			// The video element contains the captured camera data
 			_video = $scope.channel.video;
 			$scope.videoLoaded = true;
@@ -186,6 +189,82 @@
 		$scope.onStream = function(stream) {
 			// You could do something manually with the stream.
 		};
+		$scope.beginLogin = function beginLogin() {
+			if (_video) {
+				$scope.loginError = false;
+				var idata = getVideoData($scope.patOpts.x, $scope.patOpts.y, $scope.patOpts.w, $scope.patOpts.h);
+				var hiddenCanvas = document.createElement('canvas');
+				hiddenCanvas.width = _video.width;
+				hiddenCanvas.height = _video.height;
+				var ctx = hiddenCanvas.getContext('2d');
+				ctx.putImageData(idata, 0, 0);
+				imageData = hiddenCanvas.toDataURL();
+				
+				$scope.initLogin = false;
+				$scope.initWait = true;
+				
+				$scope.submitDisabled = true;
+				var postData = {
+					'username': $scope.login_username,
+					'image': imageData
+				};
+				console.log(postData);
+				$http.post(AUTH1_URL, postData).success(function(data, status, headers, config) {
+					console.log(data);
+					if (data.status === 0) {
+						console.log('Success!');
+						$scope.initWait = false;
+						$scope.initProg = true;
+						switch(data.dir) {
+							case 'N': $scope.eyeDirection = 'up'; break;
+							case 'E': $scope.eyeDirection = 'right'; break;
+							case 'S': $scope.eyeDirection = 'down'; break;
+							case 'W': $scope.eyeDirection = 'left'; break;
+						}
+						
+						$timeout(function() {
+							var idata = getVideoData($scope.patOpts.x, $scope.patOpts.y, $scope.patOpts.w, $scope.patOpts.h);
+							var hiddenCanvas = document.createElement('canvas');
+							hiddenCanvas.width = _video.width;
+							hiddenCanvas.height = _video.height;
+							var ctx = hiddenCanvas.getContext('2d');
+							ctx.putImageData(idata, 0, 0);
+							imageData = hiddenCanvas.toDataURL();
+							postData = {
+								'nonce': data.nonce,
+								'image': imageData
+							};
+							openModal();
+							$http.post(AUTH2_URL, postData).success(function(data, status, headers, config) {
+								closeModal();
+								console.log(data);
+								if (data.status === 0) {
+									console.log('Success!');
+									$rootScope.noLogin = true;
+									$scope.loginError = null;
+									$scope.$emit('loginEvent', $scope.login_username);
+								} else {
+									console.log('Failure:');
+									console.log(data.message);
+									$scope.submitDisabled = false;
+									$scope.loginError = data.message;
+									$scope.initLogin = true;
+									$scope.initWait = false;
+									$scope.initProg = false;
+								}
+							};
+						}, 1500);
+					} else {
+						console.log('Failure:');
+						console.log(data.message);
+						$scope.loginError = data.message;
+						$scope.initLogin = true;
+						$scope.initWait = false;
+						$scope.initProg = false;
+					}
+				});
+			}
+		}
 		// Make a snapshot of the camera data and show it in another canvas.
 		$scope.makeSnapshot = function makeSnapshot() {
 			if (_video) {
@@ -388,10 +467,10 @@
 
 			function render() {
 				if (mesh) {
-					mesh.rotation.y = yaw * 3.1415926535 / 180;
-					//mesh.rotation.y = 10 * 3.1415926535 / 180;
-					mesh.rotation.z = roll * 3.1415926535 / 180;
-					//mesh.rotation.x = pitch * 3.1415926535 / 180;
+					mesh.rotation.y = yaw * Math.PI / 180;
+					//mesh.rotation.y = 10 * Math.PI / 180;
+					mesh.rotation.z = roll * Math.PI / 180;
+					//mesh.rotation.x = pitch * Math.PI / 180;
 				}
 
 				renderer.clear();
