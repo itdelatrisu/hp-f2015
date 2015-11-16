@@ -1,9 +1,17 @@
-# P-Auth
-Pupil Authentication
+# P-Auth: Pupil Authentication
 
-We leverage [Project Oxford's](https://www.projectoxford.ai/) face recognition API to create a face authentication system that is resistent to pictures without sending video over the network.
+We leverage [Project Oxford's](https://www.projectoxford.ai/) face recognition
+API to create a face authentication system that is resistent to pictures without
+sending video over the network.
 
+## Prerequesites
+* [MySQL](https://www.mysql.com/)
+* [Node.js](https://nodejs.org/)
+* [Python](https://www.python.org/) (any version)
+
+## Setup
 ### Server
+* Run the MySQL database/table creation script.
   ```
   $ mysql -u root -p
   (enter your root password)
@@ -27,4 +35,4 @@ We leverage [Project Oxford's](https://www.projectoxford.ai/) face recognition A
   ```
   python -m SimpleHTTPServer
   ```
-* Go to http://localhost:8000/.
+* Go to [http://localhost:8000/](http://localhost:8000/).
